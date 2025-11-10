@@ -6,21 +6,35 @@ const cors = require('cors');
 const app = express();
 const PORT = 3001;
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://clarity-ip-pilot.vercel.app'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
   res.send('Hello from Express!');
 });
 
-app.get('/data', (req, res) => {
-  console.log('GET /data called');
-   const sampleData = [
-    { id: 1, name: 'Alice', score: 85 },
-    { id: 2, name: 'Bob', score: 92 },
-    { id: 3, name: 'Charlie', score: 78 }
-  ];
-  res.json(sampleData);
+app.get('/api/data', (req, res) => {
+  res.json([
+    { label: 'Jan', amount: 120 },
+    { label: 'Feb', amount: 150 },
+    { label: 'Mar', amount: 90 },
+    { label: 'Apr', amount: 180 }
+  ]);
 });
 
 app.listen(PORT, () => {
