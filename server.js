@@ -1,42 +1,26 @@
-// server.js
-
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-const PORT = 3001;
-
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://clarity-ip-pilot.vercel.app'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
-}));
-
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.send('Hello from Express!');
-});
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
 
 app.get('/api/data', (req, res) => {
-  res.json([
-    { label: 'Jan', amount: 120 },
-    { label: 'Feb', amount: 150 },
-    { label: 'Mar', amount: 90 },
-    { label: 'Apr', amount: 180 }
-  ]);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
+  const results = {};
+  fs.createReadStream(path.join(__dirname, 'data', 'metrics.csv'))
+    .pipe(csv())
+    .on('data', (row) => {
+      const date = new Date(row['Date Commence']);
+      const start = new Date('2020-01-01');
+      const end = new Date('2025-11-30');
+      if (date >= start && date <= end) {
+        const country = row.Country;
+        const count = parseInt(row.Licences);
+        results[country] = (results[country] || 0) + count;
+      }
+    })
+    .on('end', () => {
+      const formatted = Object.entries(results).map(([country, amount]) => ({
+        label: country,
+        amount
+      }));
+      res.json(formatted);
+    });
 });
